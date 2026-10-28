@@ -1,0 +1,38 @@
+name: Terraform Remote Module Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: init + fmt + validate (modulo remoto ?ref=v1.0.0)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.10.4
+
+      - name: terraform init (baixa o modulo do GitHub pela tag)
+        run: terraform init -backend=false -input=false
+
+      - name: Confirmar origem e versao do modulo baixado
+        run: |
+          cat .terraform/modules/modules.json
+          grep -q 'platform-engineering.git//terraform/modules/microservice-infra?ref=v1.0.0' .terraform/modules/modules.json
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: terraform validate
+        run: terraform validate
